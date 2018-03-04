@@ -1,0 +1,8 @@
+Faker==0.8.11
+numpy==1.14.0
+pandas==0.22.0
+python-dateutil==2.6.1
+pytz==2018.3
+scipy==1.0.0
+six==1.11.0
+text-unidecode==1.1
