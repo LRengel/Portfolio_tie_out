@@ -1,8 +1,15 @@
-#Virtual Env
+#Virtual Environment
 dataenv/
 
 #Byte-complied / optimized/ DLL files
 __pycache__/
 
-#jupyter notebook checkpoints
+#Jupyter notebook checkpoints
 .ipynb_checkpoints/
+
+#Pytest cache
+.pytest_cache/
+
+#notes
+Portfolio_Test.ipynb
+porjectnotes.py
