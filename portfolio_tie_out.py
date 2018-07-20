@@ -48,7 +48,7 @@ def clean_portfolio(file, cut=9, rows=0, buyoutcolumns=PORTFOLIO_BUYOUTCOLUMNNAM
     return newdf
 
 
-def clean_portfolio2(file, rows=2, footer=28):
+def clean_portfolio2(file, rows, footer):
     ''' Cleans a the porfolio that includes cancelled or replaced contracts'''
     df = pd.read_excel(file, usecols=PORTFOLIOEXCEL, skip_footer=footer, skiprows=rows, names=PORTFOLIOCOMULMNS)
     df.ContractNumber.iloc[:9] = df.ContractNumber.apply(add_extension, args=('001',))
@@ -61,7 +61,7 @@ def clean_portfolio2(file, rows=2, footer=28):
     return df
 
 
-def make_final_df(ach, port_df, portfolio_name='Clark LLC'):
+def make_final_df(ach, port_df, portfolio_name):
     ''' Combines both data frames into one'''
     new_col_names = {'CustomerName_x': 'CustomerName', 'Amount_x': 'Amount', 'Amount_y': portfolio_name}
     final_df = ach.merge(port_df, on='ContractNumber', how='inner')
@@ -78,9 +78,12 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('ach_file', nargs='?', help='Enter a valid ach file excel file with extension .xls or .xlsx: ', type=str, default='ach_test.xlsx')
 parser.add_argument('portfolio_file', nargs='?', help='Enter a valid portfolio file with extension .xls or .xlsx: ', type=str, default='portfolio2.xlsx')
-parser.add_argument('-dest', '-destination', help='Enter the file path to save the combine file', type=str, default=os.getcwd())
-parser.add_argument('-d', '--date', help="Enter the date for the file in 'MM-DD-YY' format", type=str)
+parser.add_argument('-dest', '-destination', help='Enter the file path to save the combine file:', type=str, default=os.getcwd())
+parser.add_argument('-d', '--date', help="Enter the date for the file in 'MM-DD-YY' format:", type=str)
 parser.add_argument('-b', '--buyouts', help='Run the program to deal with buyouts', action='store_true')
+parser.add_argument('-prow', '--portfoliorows', nargs='?', help='Enter the rows from the top of the portfolio file you want to skip:', type=int, default=28)
+parser.add_argument('-pfooter', '--portfoliofooterbuyout', nargs='?', help='Enter the rows from the bottom of the portfolio file to skip:', type=int, default=2)
+parser.add_argument('-pname', '--portfolioname', nargs='?', help='Enter the name of the portfolio:', type=str, default='Clark LLC')
 
 
 def main():
@@ -89,9 +92,9 @@ def main():
     if args.buyouts:
         portfolio_df = clean_portfolio(args.portfolio_file)
     else:
-        portfolio_df = clean_portfolio2(args.portfolio_file)
+        portfolio_df = clean_portfolio2(args.portfolio_file, args.portfoliofooterbuyout, args.portfoliorows)
     print('Merging files...\n')
-    final_df = make_final_df(ach_df, portfolio_df)
+    final_df = make_final_df(ach_df, portfolio_df, args.portfolioname)
     time.sleep(1)
     print('file being saved here {}.xlsx'.format('_'.join([os.getcwd(), 'Portfolio_tie_out', args.date])))
     # final_df.to_excel('portfolio_tie_out{}.xlsx'.format(args.date))
