@@ -77,7 +77,7 @@ def make_final_df(ach, port_df, portfolio_name):
 parser = argparse.ArgumentParser()
 
 parser.add_argument('ach_file', nargs='?', help='Enter a valid ach file excel file with extension .xls or .xlsx: ', type=str, default='ach_test.xlsx')
-parser.add_argument('portfolio_file', nargs='?', help='Enter a valid portfolio file with extension .xls or .xlsx: ', type=str, default='portfolio2.xlsx')
+parser.add_argument('portfolio_file', nargs='?', help='Enter a valid portfolio file with extension .xls or .xlsx: ', type=str, default='portfolio_2.xlsx')
 parser.add_argument('-dest', '-destination', help='Enter the file path to save the combine file:', type=str, default=os.getcwd())
 parser.add_argument('-d', '--date', help="Enter the date for the file in 'MM-DD-YY' format:", type=str)
 parser.add_argument('-b', '--buyouts', help='Run the program to deal with buyouts', action='store_true')
