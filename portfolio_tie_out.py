@@ -10,6 +10,7 @@ ACH_DTYPES = {'Bank Code': np.object}
 PORTFOLIO_BUYOUTCOLUMNNAMES = ('ContractNumber', 'CustomerName', 'Amount', 'Notes')
 PORTFOLIOCOMULMNS = ('ContractNumber', 'CustomerName', 'Amount')
 PORTFOLIOEXCEL = 'A,C,D'
+DEFAULT_BANK_CODE = '999.99'
 
 
 def add_extension(contract, extension):
@@ -21,17 +22,59 @@ def add_extension(contract, extension):
         return contract
 
 
-def clean_ach(file, cols=ACH_DEFAULTCOLS, excelcolumns=ACH_DEFAULTEXCEL):
-    ''' Cleans the ACH spreadsheet to grab the values needed for anlysis '''
+def clean_ach(file, cols=ACH_DEFAULTCOLS, excelcolumns=ACH_DEFAULTEXCEL, bank_code=DEFAULT_BANK_CODE):
+    """ Cleans the ACH spreadsheet and reformats it to a DataFrame for analysis
+
+    Parameters
+
+    ----------
+    file : str
+        The ach file you want to clean (must have a .xls or .xlsx extension)
+    cols : tuple, optional
+        An flag used to store to final DataFrame columns (default is ACH_DEFAULTCOLS a tuple of
+        column names)
+    excelcolumns : str, optional
+        A flag used to specify which excel columns to load in from the ach file
+        (default is ACH_DEFAULTEXCEL which is a str of excel column labels)
+    bank_code : str, optional
+        A flag used to filter all the ACH payments to compare
+
+    Returns
+
+    -------
+    DataFrame
+        A DataFrame that is has been cleaned to only include the porfolio payments and proper
+        columns
+    """
     df = pd.read_excel(file, usecols=excelcolumns, names=cols, dtype=ACH_DTYPES)
-    df = df.loc[(df['Type'] == 'U') & (df['Bank Code'] == '999.99'), :]
+    df = df.loc[(df['Type'] == 'U') & (df['Bank Code'] == bank_code), :]
     df.reset_index(inplace=True)
     df.drop(columns=['index', 'Bank Code'], inplace=True)
     return df
 
 
 def clean_portfolio(file, cut=9, rows=0, buyoutcolumns=PORTFOLIO_BUYOUTCOLUMNNAMES):
-    ''' Cleans a the porfolio that includes buyouts'''
+    """Cleans a portfolio file that has buyouts and reformats it to a DataFrame for analysis
+
+    Parameters
+
+    ----------
+    file : str
+        portfolio file you want to clean (must have a .xls or .xlsx extension)
+    cut : int, optional
+        a flag to split up the payments from the buyout section
+    rows : int, optional
+        rows from the top of the file to skip when it is read in
+    buyoutcolumns: tuple, optional
+        column names given to the cleaned DataFrame
+
+
+    Returns
+
+    -------
+    DataFrame
+        A DataFrame that has been cleaned to only include important information
+    """
     df = pd.read_excel(file, rows)
     buyouts = df.loc[df.ContractNumber == 'Buyout', :].copy()
     df.dropna(axis=0, thresh=1)
@@ -49,7 +92,25 @@ def clean_portfolio(file, cut=9, rows=0, buyoutcolumns=PORTFOLIO_BUYOUTCOLUMNNAM
 
 
 def clean_portfolio2(file, rows, footer):
-    ''' Cleans a the porfolio that includes cancelled or replaced contracts'''
+    """Cleans the portfolio excel file with cancelled or replaced values and reformats it to a DataFrame
+
+    Parameters
+
+    ----------
+    file : str
+        portfolio file you want to clean (must have a .xls or .xlsx extension)
+    rows : int
+        rows from the top of the file to skip when it is read in
+    footer : int
+        rows from the bottom of the file to skip when the file is read in
+
+
+    Returns
+
+    -------
+    DataFrame
+        The reformated Dataframe ready to be compared with ach file read in
+    """
     df = pd.read_excel(file, usecols=PORTFOLIOEXCEL, skip_footer=footer, skiprows=rows, names=PORTFOLIOCOMULMNS)
     df.ContractNumber.iloc[:9] = df.ContractNumber.apply(add_extension, args=('001',))
     df.ContractNumber.iloc[9:] = df.ContractNumber.apply(add_extension, args=('040',))
@@ -62,7 +123,25 @@ def clean_portfolio2(file, rows, footer):
 
 
 def make_final_df(ach, port_df, portfolio_name):
-    ''' Combines both data frames into one'''
+    """ Merges the ACH DataFrame and Portfolio DataFrame together and compares the payments made
+
+
+    Parameters
+
+    ----------
+    ach : DataFrame
+        The ACH dataFrame created from the clean_ach function
+    port_df : DataFrame
+        The portfolio DataFrame created from one of the two clean_portfolio functions
+    porfolio_name : str
+        the name of the portfolio you are comparing payments with
+
+    Returns
+
+    -------
+    DataFrame
+        The merged DataFrame that show the differences between the files
+    """
     new_col_names = {'CustomerName_x': 'CustomerName', 'Amount_x': 'Amount', 'Amount_y': portfolio_name}
     final_df = ach.merge(port_df, on='ContractNumber', how='inner')
     final_df.drop(columns=['Program', 'CustomerName_y'], inplace=True)
