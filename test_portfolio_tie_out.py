@@ -1,4 +1,4 @@
-from portfolio_tie_out import clean_ach, clean_portfolio, clean_portfolio2, make_final_df
+from portfolio_tie_out import clean_ach, clean_portfolio, make_final_df
 
 # ACH function tests
 
@@ -31,20 +31,20 @@ def test_ach_dataframe_n_types():
 
 def test_final_dataframe_columns():
     df_ach = clean_ach('ach_test.xlsx')
-    df_portfolio = clean_portfolio('portfolio.xlsx', 9)
-    df_final = make_final_df(df_ach, df_portfolio)
+    df_portfolio = clean_portfolio('portfolio.xlsx', 'Portfolio_tie_out060218.xlsx', buyout=True, cut=9)
+    df_final = make_final_df(df_ach, df_portfolio, portfolio_name='Clarke LLC')
     assert list(df_final.columns) == ['ContractNumber', 'CustomerName', 'Type', 'Amount', 'Clarke LLC', 'Difference', 'Notes']
 
 
 def test_final_dataframe_shape():
     df_ach = clean_ach('ach_test.xlsx')
-    df_portfolio = clean_portfolio('portfolio.xlsx', 9)
-    df_final = make_final_df(df_ach, df_portfolio)
+    df_portfolio = clean_portfolio('portfolio.xlsx', 'Portfolio_tie_out060218.xlsx', buyout=True, cut=9)
+    df_final = make_final_df(df_ach, df_portfolio, portfolio_name='Clarke LLC')
     assert df_final.shape == (10, 7)
 
 
 def test_final_dataframe_dtypes():
     df_ach = clean_ach('ach_test.xlsx')
-    df_portfolio = clean_portfolio('portfolio.xlsx', 9)
-    df_final = make_final_df(df_ach, df_portfolio)
+    df_portfolio = clean_portfolio('portfolio.xlsx', 'Portfolio_tie_out060218.xlsx', buyout=True, cut=9)
+    df_final = make_final_df(df_ach, df_portfolio, portfolio_name='Clark LLC')
     assert all(df_final.dtypes == ['O', 'O', 'O', 'float64', 'float64', 'float64', 'O'])
