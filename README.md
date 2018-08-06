@@ -7,9 +7,5 @@
 ### Basic usage:
 - From the Command line
 
-- ` python portfolio_tie_out.py 'achfile.xlsx' 'portfoliofile.xlsx' -d 071819 `
+- ` python portfolio_tie_out.py 'achfile.xlsx' 'portfoliofile.xlsx' --date 071819 `
 
-### Requirements
-- python 3.5 or greater
-- pandas
-- numpy

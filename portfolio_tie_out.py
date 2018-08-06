@@ -33,7 +33,7 @@ def clean_ach(file, cols=ACH_DEFAULTCOLS, excelcolumns=ACH_DEFAULTEXCEL, bank_co
 
     -------
     DataFrame
-        A DataFrame that is has been cleaned to only include the portfolio payments and proper
+        A DataFrame that is has been cleaned to only include the porfolio payments and proper
         columns
     """
     df = pd.read_excel(file, usecols=excelcolumns, names=cols, dtype=ACH_DTYPES)
