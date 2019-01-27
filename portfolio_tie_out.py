@@ -1,37 +1,18 @@
-import pandas as pd
-import numpy as np
 import argparse
+import numpy as np
 import os
+import pandas as pd
 import time
+
 # Default values if none are given
 ACH_DEFAULTCOLS = ('ContractNumber', 'CustomerName', 'Type', 'Bank Code', 'Amount', 'Program')
 ACH_DEFAULTEXCEL = 'A,B,C,D,G,H'
 ACH_DTYPES = {'Bank Code': np.object}
+BANK_CODE = '999.99'
+FINAL_SHEET_NAMES = ('Comparison', 'Notes', 'Portfolio Payments')
 PORTFOLIO_BUYOUTCOLUMNNAMES = ('ContractNumber', 'CustomerName', 'Amount', 'Notes')
 PORTFOLIOCOMULMNS = ('ContractNumber', 'CustomerName', 'Amount')
 PORTFOLIOEXCEL = 'A,C,D'
-BANK_CODE = '999.99'
-
-
-def money(amount):
-    """ Takes a floating point value and reformats it to a string that includes commas and 2 decimals
-        ex 1225.22 to 1,225.22
-
-    Parameters
-
-    ----------
-    amount : float
-            The amount that you want to reformat
-
-    Returns
-
-    -------
-    str
-        the formatted value of the float passed in
-    """
-    if type(amount) is float:
-        return'{0:,.2f}'.format(amount)
-    return amount
 
 
 def clean_ach(file, cols=ACH_DEFAULTCOLS, excelcolumns=ACH_DEFAULTEXCEL, bank_code=BANK_CODE):
@@ -121,9 +102,9 @@ def make_final_df(ach, port_df, portfolio_name):
 
     ----------
     ach : DataFrame
-        The ACH dataFrame created from the clean_ach function
+        the ACH dataFrame created from the clean_ach function
     port_df : DataFrame
-        The portfolio DataFrame created from one of the two clean_portfolio functions
+        the portfolio DataFrame created from one of the two clean_portfolio functions
     porfolio_name : str
         the name of the portfolio you are comparing payments with
 
@@ -144,20 +125,22 @@ def make_final_df(ach, port_df, portfolio_name):
     return final_df
 
 
-def create_finalspreadsheet(final_df, payment_total, port_df, portfolio_name='Clark LLC'):
+def create_finalspreadsheet(final_df, payment_total, port_df, buyout=True, portfolio_name='Clark LLC'):
     """Creates the final spread sheet from the dataframes created
 
     Parameters
 
     ----------
     final_df : DataFrame
-            The final dataframe returned from the make_final_df function
+            the final dataframe returned from the make_final_df function
     payment_total : float
-            The total of the payment from the company providing the portfolio
+            the total of the payment from the company providing the portfolio
     port_df : DataFrame
-            The portfolio dataframe returned from the clean_portfolio function
+            the portfolio dataframe returned from the clean_portfolio function
+    buyout : boolean
+            specifies whether the file read in contains buyouts or not
     portfolio_name : str
-            The name of the portfolio being analyzed
+            the name of the portfolio being analyzed
 
     Returns
 
@@ -166,29 +149,37 @@ def create_finalspreadsheet(final_df, payment_total, port_df, portfolio_name='Cl
         Will write the dataframes to a spreadsheet and save it in the current directory
     """
     port_total = final_df.iloc[final_df.shape[0] - 1][portfolio_name]
-    notes = final_df.loc[final_df.Notes == 'Buyout'][['ContractNumber', 'CustomerName', 'Amount', portfolio_name, 'Notes']]
-    notes.Amount = notes['Amount'].apply(money)
-    notes['Clark LLC'] = notes['Clark LLC'].apply(money)
+    if buyout:
+        notes = final_df.loc[final_df.Notes == 'Buyout'][['ContractNumber', 'CustomerName', 'Amount', portfolio_name, 'Notes']]
+    else:
+        notes = final_df.loc[(final_df.Notes == 'Cancelled') | (final_df.Notes == 'Replaced')][['ContractNumber', 'CustomerName', 'Amount', portfolio_name, 'Notes']]
     difference = port_total - payment_total
-    summary_values = [['', 'Payment Total:', payment_total, 'Portfolio Total:', port_total, 'Difference', difference]]
+    summary_values = [['', 'Payment Total:', payment_total, 'Portfolio Total:', port_total, 'Difference:', difference]]
     final_df = final_df.append(pd.DataFrame(summary_values, columns=final_df.columns), ignore_index=True)
-    final_df.Amount = final_df.Amount.apply(money)
-    final_df['Clark LLC'] = final_df['Clark LLC'].apply(money)
-    final_df['Difference'] = final_df.Difference.apply(money)
-    final_df.Type = final_df.Type.apply(money)
-    writer = pd.ExcelWriter('final_test.xlsx')
-    final_df.to_excel(writer, sheet_name='Comparison', index=False)
-    notes.to_excel(writer, sheet_name='Notes', index=False)
-    port_df.to_excel(writer, sheeet_name='Original Portfolio Payments', index=False)
-    writer.save()
+    final_df.Notes.where(final_df.Notes != 0, '', inplace=True)
+    port_df.Notes.where(port_df.Notes != 0, '', inplace=True)
+    writer = pd.ExcelWriter('final_test.xlsx', engine='xlsxwriter')
+    final_df.to_excel(writer, sheet_name=FINAL_SHEET_NAMES[0], index=False)
+    notes.to_excel(writer, sheet_name=FINAL_SHEET_NAMES[1], index=False)
+    port_df.to_excel(writer, sheet_name=FINAL_SHEET_NAMES[2], index=False)
+    workbook = writer.book
+    format1 = workbook.add_format({'num_format': '#,##0.00'})
+    for sheet in FINAL_SHEET_NAMES:
+        if sheet == 'Portfolio Payments':
+            worksheet = writer.sheets[sheet]
+            worksheet.set_column('A:C', 15, format1)
+        else:
+            worksheet = writer.sheets[sheet]
+            worksheet.set_column('A:F', 15, format1)
+    writer.close()
 
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('ach_file', nargs='?', help='Enter a valid ach file excel file with extension .xls or .xlsx: ', type=str, default='ach_test.xlsx')
-parser.add_argument('portfolio_file', nargs='?', help='Enter a valid portfolio file with extension .xls or .xlsx: ', type=str, default='portfolio_2.xlsx')
-parser.add_argument('lastmonth_file', nargs='?', help='Enter a valid final excel file to be used to get the proper contract numbers', type=str, default='Portfolio_tie_out_060218.xlsx')
-parser.add_argument('payment_total', nargs='?', help='Enter the payment total from the portfolio', type=float, default=22723.45)
+parser.add_argument('ach_file', nargs='?', help='Enter a valid ach file excel file with extension .xls or .xlsx: ', type=str, default='./data/ach_test.xlsx')
+parser.add_argument('portfolio_file', nargs='?', help='Enter a valid portfolio file with extension .xls or .xlsx: ', type=str, default='./data/portfolio_2.xlsx')
+parser.add_argument('lastmonth_file', nargs='?', help='Enter a valid final excel file to be used to get the proper contract numbers', type=str, default='./data/Portfolio_tie_out_060218.xlsx')
+parser.add_argument('payment_total', nargs='?', help='Enter the payment total from the portfolio spreadsheet', type=float, default=22723.45)
 parser.add_argument('--cut', nargs='?', help='Enter the row to split the portfolio file between the buyouts and regular columns', type=int, default=0)
 parser.add_argument('--destination', help='Enter the file path to save the combined file', type=str, default=os.getcwd())
 parser.add_argument('--date', help="Enter the date for the file in 'MM-DD-YY' format", type=str, default='10-01-2018')
@@ -200,17 +191,26 @@ parser.add_argument('--portfolioname', nargs='?', help='Enter the name of the po
 
 def main():
     args = parser.parse_args()
-    ach_df = clean_ach(args.ach_file)
-    portfolio_df = clean_portfolio(args.portfolio_file, args.lastmonth_file, args.buyouts, args.cut, args.portfoliorows, args.pfooter)
+    try:
+        ach_df = clean_ach(args.ach_file)
+        portfolio_df = clean_portfolio(args.portfolio_file, args.lastmonth_file, args.buyouts, args.cut, args.portfoliorows, args.pfooter)
+    except FileNotFoundError as e:
+        print('{} : please check the spelling of the files pass in \n'.format(e))
+    except Exception as e:
+        print('Other error occurred: {}'.format(e))
+        return
     print('Merging files...\n')
     final_df = make_final_df(ach_df, portfolio_df, args.portfolioname)
     time.sleep(1)
     print('file being saved here: {}'.format(os.getcwd()))
-    print('Below is you final df: \n')
-    print(final_df)
-    print('Saving files to excel file \n')
-    create_finalspreadsheet(final_df, args.payment_total, portfolio_df)
-    print(os.getcwd())
+    print('Below is your final df: \n')
+    print(final_df.head())
+    create_excel_file = input('Would you like to save this dataframe to a file?(y/n): \n')
+    if create_excel_file == 'y':
+        create_finalspreadsheet(final_df, args.payment_total, portfolio_df, buyout=args.buyouts)
+        print(os.getcwd())
+    else:
+        print('Analysis not saved')
 
 
 if __name__ == '__main__':
