@@ -195,20 +195,19 @@ def main():
         ach_df = clean_ach(args.ach_file)
         portfolio_df = clean_portfolio(args.portfolio_file, args.lastmonth_file, args.buyouts, args.cut, args.portfoliorows, args.pfooter)
     except FileNotFoundError as e:
-        print('{} : please check the spelling of the files pass in \n'.format(e))
+        print('{} : please check the spelling of the files passed in \n'.format(e))
     except Exception as e:
         print('Other error occurred: {}'.format(e))
         return
     print('Merging files...\n')
     final_df = make_final_df(ach_df, portfolio_df, args.portfolioname)
     time.sleep(1)
-    print('file being saved here: {}'.format(os.getcwd()))
     print('Below is your final df: \n')
     print(final_df.head())
     create_excel_file = input('Would you like to save this dataframe to a file?(y/n): \n')
     if create_excel_file == 'y':
         create_finalspreadsheet(final_df, args.payment_total, portfolio_df, buyout=args.buyouts)
-        print(os.getcwd())
+        print('Your spreadsheet has been saved here: {}'.format(os.getcwd()))
     else:
         print('Analysis not saved')
 
