@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pandas as pd
 import time
+from datetime import datetime
 
 # Default values if none are given
 ACH_DEFAULTCOLS = ('ContractNumber', 'CustomerName', 'Type', 'Bank Code', 'Amount', 'Program')
@@ -147,6 +148,7 @@ def create_finalspreadsheet(final_df, payment_total, port_df, buyout=True, portf
     -------
     excel_file
         Will write the dataframes to a spreadsheet and save it in the current directory
+        In the format Portfoliotieout<currentdate>
     """
     port_total = final_df.iloc[final_df.shape[0] - 1][portfolio_name]
     if buyout:
@@ -158,7 +160,7 @@ def create_finalspreadsheet(final_df, payment_total, port_df, buyout=True, portf
     final_df = final_df.append(pd.DataFrame(summary_values, columns=final_df.columns), ignore_index=True)
     final_df.Notes.where(final_df.Notes != 0, '', inplace=True)
     port_df.Notes.where(port_df.Notes != 0, '', inplace=True)
-    writer = pd.ExcelWriter('final_test.xlsx', engine='xlsxwriter')
+    writer = pd.ExcelWriter('Portfoliotieout{}.xlsx'.format(datetime.today().strftime('%m%d%y')), engine='xlsxwriter')
     final_df.to_excel(writer, sheet_name=FINAL_SHEET_NAMES[0], index=False)
     notes.to_excel(writer, sheet_name=FINAL_SHEET_NAMES[1], index=False)
     port_df.to_excel(writer, sheet_name=FINAL_SHEET_NAMES[2], index=False)
@@ -205,7 +207,7 @@ def main():
     print('Below is your final df: \n')
     print(final_df.head())
     create_excel_file = input('Would you like to save this dataframe to a file?(y/n): \n')
-    if create_excel_file == 'y':
+    if create_excel_file.lower() == 'y':
         create_finalspreadsheet(final_df, args.payment_total, portfolio_df, buyout=args.buyouts)
         print('Your spreadsheet has been saved here: {}'.format(os.getcwd()))
     else:
